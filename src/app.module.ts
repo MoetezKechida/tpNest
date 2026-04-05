@@ -1,0 +1,27 @@
+import { Module } from '@nestjs/common';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
+import { UserModule } from './user/user.module';
+import { CvModule } from './cv/cv.module';
+import { SkillModule } from './skill/skill.module';
+import { TypeOrmModule } from '@nestjs/typeorm';
+
+@Module({
+  imports: [
+      TypeOrmModule.forRoot({
+      database: 'tpnest',
+      host: 'localhost',
+      username: 'root',
+      password: '',
+      type:'mysql',
+      autoLoadEntities: true,
+      synchronize: true,
+      logging: true  
+      
+    }),
+    UserModule, CvModule, SkillModule
+  ],
+  controllers: [AppController],
+  providers: [AppService],
+})
+export class AppModule {}
