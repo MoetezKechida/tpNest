@@ -15,7 +15,7 @@ export class AuthService {
   ) {}
 
   async register(registerDto: RegisterDto): Promise<{ message: string; user: Partial<User> }> {
-    // Check if username already exists
+    
     const existingUsername = await this.userRepository.findOne({
       where: { username: registerDto.username }
     });
@@ -23,7 +23,7 @@ export class AuthService {
       throw new ConflictException('Username already exists');
     }
 
-    // Check if email already exists
+    
     const existingEmail = await this.userRepository.findOne({
       where: { email: registerDto.email }
     });
@@ -31,10 +31,10 @@ export class AuthService {
       throw new ConflictException('Email already exists');
     }
 
-    // Hash password
+    
     const hashedPassword = await bcrypt.hash(registerDto.password, 10);
 
-    // Create user
+    
     const user = this.userRepository.create({
       username: registerDto.username,
       email: registerDto.email,
@@ -44,7 +44,7 @@ export class AuthService {
 
     const savedUser = await this.userRepository.save(user);
 
-    // Return user without password
+    
     const { password, ...result } = savedUser;
     return {
       message: 'User registered successfully',
@@ -53,7 +53,7 @@ export class AuthService {
   }
 
   async login(loginDto: LoginDto): Promise<{ token: string; user: Partial<User> }> {
-    // Find user by username
+    
     const user = await this.userRepository.findOne({
       where: { username: loginDto.username }
     });
@@ -62,20 +62,20 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    // Verify password
+    
     const isPasswordValid = await bcrypt.compare(loginDto.password, user.password);
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    // Generate JWT token
+    
     const token = sign(
       { userId: user.id, username: user.username, role: user.role },
-      'SECRET_KEY_CHANGE_THIS', // Should be in environment variable
+      process.env.JWT_SECRET || 'fallback_secret_key',
       { expiresIn: '24h' }
     );
 
-    // Return token and user without password
+    
     const { password, ...result } = user;
     return {
       token,

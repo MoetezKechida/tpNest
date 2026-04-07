@@ -11,16 +11,16 @@ import { AuthMiddleware } from '../middlewares/auth.middleware';
   controllers: [CvController],
   providers: [CvService],
   imports: [TypeOrmModule.forFeature([Cv, User, Skill])],
-  exports: [CvService] // Export to use in seeds
+  exports: [CvService] 
 })
 export class CvModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     consumer
       .apply(AuthMiddleware)
       .forRoutes(
-        { path: 'cv', method: RequestMethod.POST },      // Create
-        { path: 'cv/:id', method: RequestMethod.PATCH }, // Update
-        { path: 'cv/:id', method: RequestMethod.DELETE } // Delete
+        { path: 'cv', method: RequestMethod.POST },      
+        { path: 'cv/:id', method: RequestMethod.PATCH }, 
+        { path: 'cv/:id', method: RequestMethod.DELETE } 
       );
   }
 }

@@ -5,6 +5,6 @@ export class CreateCvDto {
   cin: string;
   job: string;
   path: string;
-  userId?: number; // Optional, for linking to a user
-  skillIds?: number[]; // Optional, for linking to skills
+  userId?: number; 
+  skillIds?: number[]; 
 }
