@@ -1,5 +1,5 @@
 import { Column, Entity, JoinTable,OneToMany,PrimaryGeneratedColumn } from "typeorm";
-import { Cv } from "src/cv/entities/cv.entity";
+import { Cv } from "../../cv/entities/cv.entity";
 
 @Entity('user')
 export class User {

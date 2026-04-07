@@ -1,26 +1,61 @@
 import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { User } from './entities/user.entity';
+import { randEmail, randUserName, randPassword } from '@ngneat/falso';
 
 @Injectable()
 export class UserService {
-  create(createUserDto: CreateUserDto) {
-    return 'This action adds a new user';
+  constructor(
+    @InjectRepository(User)
+    private userRepository: Repository<User>,
+  ) {}
+
+  async create(createUserDto: CreateUserDto): Promise<User> {
+    const user = this.userRepository.create(createUserDto);
+    return await this.userRepository.save(user);
   }
 
-  findAll() {
-    return `This action returns all user`;
+  async findAll(): Promise<User[]> {
+    return await this.userRepository.find({ relations: ['cvs'] });
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} user`;
+  async findOne(id: number): Promise<User> {
+    return await this.userRepository.findOne({
+      where: { id },
+      relations: ['cvs']
+    });
   }
 
-  update(id: number, updateUserDto: UpdateUserDto) {
-    return `This action updates a #${id} user`;
+  async update(id: number, updateUserDto: UpdateUserDto): Promise<User> {
+    await this.userRepository.update(id, updateUserDto);
+    return this.findOne(id);
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} user`;
+  async remove(id: number): Promise<void> {
+    await this.userRepository.delete(id);
+  }
+
+  // Seed method for standalone application
+  async seedUsers(): Promise<User[]> {
+    // Delete all existing users using query builder
+    await this.userRepository.createQueryBuilder().delete().execute();
+    
+    const users: Partial<User>[] = [];
+    
+    for (let i = 0; i < 10; i++) {
+      users.push({
+        username: randUserName(),
+        email: randEmail(),
+        password: randPassword() // In real app, should be hashed
+      });
+    }
+    
+    const savedUsers = await this.userRepository.save(users);
+    console.log(`✅ Created ${savedUsers.length} users`);
+    
+    return savedUsers;
   }
 }
