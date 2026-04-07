@@ -49,7 +49,7 @@ export async function seedCvs(dataSource: DataSource, users: User[], skills: Ski
     await cvRepository.save(cv);
   }
   
-  console.log(`✅ Created ${savedCvs.length} CVs with random skills`);
+  console.log(`Created ${savedCvs.length} CVs with random skills`);
   
   return savedCvs;
 }

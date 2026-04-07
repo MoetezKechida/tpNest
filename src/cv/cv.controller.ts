@@ -1,14 +1,17 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe, Req, ForbiddenException } from '@nestjs/common';
 import { CvService } from './cv.service';
 import { CreateCvDto } from './dto/create-cv.dto';
 import { UpdateCvDto } from './dto/update-cv.dto';
+import * as authMiddleware from '../middlewares/auth.middleware';
 
 @Controller('cv')
 export class CvController {
   constructor(private readonly cvService: CvService) {}
 
   @Post()
-  create(@Body() createCvDto: CreateCvDto) {
+  create(@Body() createCvDto: CreateCvDto, @Req() req: authMiddleware.AuthRequest) {
+    // Automatically assign the authenticated user
+    createCvDto.userId = req.userId;
     return this.cvService.create(createCvDto);
   }
 
@@ -23,12 +26,30 @@ export class CvController {
   }
 
   @Patch(':id')
-  update(@Param('id', ParseIntPipe) id: number, @Body() updateCvDto: UpdateCvDto) {
+  async update(
+    @Param('id', ParseIntPipe) id: number, 
+    @Body() updateCvDto: UpdateCvDto,
+    @Req() req: authMiddleware.AuthRequest
+  ) {
+    // Check if the authenticated user is the owner of the CV
+    const cv = await this.cvService.findOne(id);
+    
+    if (cv.user?.id !== req.userId) {
+      throw new ForbiddenException('You can only update your own CVs');
+    }
+
     return this.cvService.update(id, updateCvDto);
   }
 
   @Delete(':id')
-  remove(@Param('id', ParseIntPipe) id: number) {
+  async remove(@Param('id', ParseIntPipe) id: number, @Req() req: authMiddleware.AuthRequest) {
+    // Check if the authenticated user is the owner of the CV
+    const cv = await this.cvService.findOne(id);
+    
+    if (cv.user?.id !== req.userId) {
+      throw new ForbiddenException('You can only delete your own CVs');
+    }
+
     return this.cvService.remove(id);
   }
 

@@ -9,8 +9,8 @@ async function bootstrap() {
   const app = await NestFactory.createApplicationContext(AppModule);
   
   try {
-    console.log('🔗 NestJS application context created');
-    console.log('🌱 Starting data seeding...');
+    console.log('NestJS application context created');
+    console.log('Starting data seeding...');
 
     // Get services from NestJS container
     const userService = app.get(UserService);
@@ -22,14 +22,14 @@ async function bootstrap() {
     const users = await userService.seedUsers();
     const cvs = await cvService.seedCvs();
 
-    console.log('🎉 Seeding completed successfully!');
-    console.log(`📊 Summary: ${users.length} users, ${skills.length} skills, ${cvs.length} CVs`);
+    console.log('Seeding completed successfully!');
+    console.log(`Summary: ${users.length} users, ${skills.length} skills, ${cvs.length} CVs`);
 
   } catch (error) {
-    console.error('❌ Error during seeding:', error);
+    console.error('Error during seeding:', error);
   } finally {
     await app.close();
-    console.log('💼 Application context closed');
+    console.log('Application context closed');
   }
 }
 
