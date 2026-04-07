@@ -1,4 +1,4 @@
-import { Column, Entity, JoinTable,OneToMany,PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 import { Cv } from "../../cv/entities/cv.entity";
 
 @Entity('user')
@@ -6,9 +6,17 @@ export class User {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column() username: string;
-  @Column() email: string;
-  @Column() password: string;
+  @Column({ unique: true })
+  username: string;
+
+  @Column({ unique: true })
+  email: string;
+
+  @Column()
+  password: string;
+
+  @Column({ default: 'user' })
+  role: string; // 'user', 'admin', etc.
 
   @OneToMany(() => Cv, (cv) => cv.user)
   cvs: Cv[];

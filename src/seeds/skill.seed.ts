@@ -44,7 +44,7 @@ export async function seedSkills(dataSource: DataSource): Promise<Skill[]> {
   ];
   
   const savedSkills = await skillRepository.save(skillsData);
-  console.log(`✅ Created ${savedSkills.length} skills`);
+  console.log(`Created ${savedSkills.length} skills`);
   
   return savedSkills;
 }
