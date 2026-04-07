@@ -29,7 +29,7 @@ export class CvService {
       path: createCvDto.path,
     });
 
-    // Handle user relation
+    
     if (createCvDto.userId) {
       const user = await this.userRepository.findOne({ 
         where: { id: createCvDto.userId } 
@@ -40,10 +40,10 @@ export class CvService {
       cv.user = user;
     }
 
-    // Save CV first
+    
     const savedCv = await this.cvRepository.save(cv);
 
-    // Handle skills relation
+    
     if (createCvDto.skillIds && createCvDto.skillIds.length > 0) {
       const skills = await this.skillRepository.findByIds(createCvDto.skillIds);
       if (skills.length !== createCvDto.skillIds.length) {
@@ -76,9 +76,9 @@ export class CvService {
   }
 
   async update(id: number, updateCvDto: UpdateCvDto): Promise<Cv> {
-    const cv = await this.findOne(id); // Will throw if not found
+    const cv = await this.findOne(id); 
 
-    // Update basic fields
+    
     await this.cvRepository.update(id, {
       name: updateCvDto.name ?? cv.name,
       firstname: updateCvDto.firstname ?? cv.firstname,
@@ -88,7 +88,7 @@ export class CvService {
       path: updateCvDto.path ?? cv.path,
     });
 
-    // Handle user relation update
+    
     if (updateCvDto.userId !== undefined) {
       if (updateCvDto.userId === null) {
         cv.user = null;
@@ -103,7 +103,7 @@ export class CvService {
       }
     }
 
-    // Handle skills relation update
+    
     if (updateCvDto.skillIds !== undefined) {
       if (updateCvDto.skillIds.length === 0) {
         cv.skills = [];
@@ -121,11 +121,11 @@ export class CvService {
   }
 
   async remove(id: number): Promise<void> {
-    const cv = await this.findOne(id); // Will throw if not found
+    const cv = await this.findOne(id); 
     await this.cvRepository.remove(cv);
   }
 
-  // Additional useful methods for CV management
+  
   async findByUser(userId: number): Promise<Cv[]> {
     const user = await this.userRepository.findOne({ 
       where: { id: userId } 
@@ -164,7 +164,7 @@ export class CvService {
       throw new Error(`Skill with ID ${skillId} not found`);
     }
 
-    // Check if skill is already added
+    
     const hasSkill = cv.skills.some(s => s.id === skillId);
     if (hasSkill) {
       throw new Error('Skill already added to this CV');
@@ -183,7 +183,7 @@ export class CvService {
     return this.findOne(cvId);
   }
 
-  // Seed method for standalone application
+  
   async seedCvs(): Promise<Cv[]> {
     // Delete all existing CVs using query builder
     await this.cvRepository.createQueryBuilder().delete().execute();
@@ -197,7 +197,7 @@ export class CvService {
     
     const cvs: Partial<Cv>[] = [];
     
-    // Generate 2-3 CVs per user
+    
     for (const user of users) {
       const numberOfCvs = randNumber({ min: 1, max: 3 });
       
@@ -218,10 +218,10 @@ export class CvService {
       }
     }
     
-    // Save CVs first
+    
     const savedCvs = await this.cvRepository.save(cvs);
     
-    // Assign random skills to each CV
+    
     for (const cv of savedCvs) {
       const numberOfSkills = randNumber({ min: 2, max: 6 });
       const randomSkills = skills
@@ -232,7 +232,7 @@ export class CvService {
       await this.cvRepository.save(cv);
     }
     
-    console.log(`✅ Created ${savedCvs.length} CVs with random skills`);
+    console.log(`Created ${savedCvs.length} CVs with random skills`);
     
     return savedCvs;
   }

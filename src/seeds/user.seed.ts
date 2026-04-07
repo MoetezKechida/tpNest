@@ -20,7 +20,7 @@ export async function seedUsers(dataSource: DataSource): Promise<User[]> {
   }
   
   const savedUsers = await userRepository.save(users);
-  console.log(`✅ Created ${savedUsers.length} users`);
+  console.log(`Created ${savedUsers.length} users`);
   
   return savedUsers;
 }
