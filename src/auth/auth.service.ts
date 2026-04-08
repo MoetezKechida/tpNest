@@ -5,13 +5,14 @@ import { User } from '../user/entities/user.entity';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import * as bcrypt from 'bcrypt';
-import { sign } from 'jsonwebtoken';
+import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class AuthService {
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    private jwtService: JwtService,
   ) {}
 
   async register(registerDto: RegisterDto): Promise<{ message: string; user: Partial<User> }> {
@@ -69,11 +70,8 @@ export class AuthService {
     }
 
     
-    const token = sign(
-      { userId: user.id, username: user.username, role: user.role },
-      process.env.JWT_SECRET || 'fallback_secret_key',
-      { expiresIn: '24h' }
-    );
+    const payload = { userId: user.id, username: user.username, role: user.role };
+    const token = this.jwtService.sign(payload);
 
     
     const { password, ...result } = user;
