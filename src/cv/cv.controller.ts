@@ -1,82 +1,142 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe, Req, ForbiddenException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  ParseIntPipe,
+  Req,
+  ForbiddenException,
+  UnauthorizedException,
+  UseGuards,
+} from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
 import { CvService } from './cv.service';
 import { CreateCvDto } from './dto/create-cv.dto';
 import { UpdateCvDto } from './dto/update-cv.dto';
-import * as authMiddleware from '../middlewares/auth.middleware';
+import { Request } from 'express';
+
+export interface AuthRequest extends Request {
+  user?: {
+    id: number;
+    username: string;
+    role: string;
+  };
+}
 
 @Controller('cv')
+@UseGuards(AuthGuard('jwt'))
 export class CvController {
   constructor(private readonly cvService: CvService) {}
 
+  private getAuthenticatedUserId(req: AuthRequest): number {
+    if (!req.user?.id) {
+      throw new UnauthorizedException('Authenticated user not found in request');
+    }
+    return req.user.id;
+  }
+
   @Post()
-  create(@Body() createCvDto: CreateCvDto, @Req() req: authMiddleware.AuthRequest) {
-    // Automatically assign the authenticated user
-    createCvDto.userId = req.userId;
+  create(@Body() createCvDto: CreateCvDto, @Req() req: AuthRequest) {
+    createCvDto.userId = this.getAuthenticatedUserId(req);
     return this.cvService.create(createCvDto);
   }
 
   @Get()
-  findAll() {
-    return this.cvService.findAll();
+  findAll(@Req() req: AuthRequest) {
+    return this.cvService.findByUser(this.getAuthenticatedUserId(req));
+  }
+
+  @Get('user/:userId')
+  findByUser(@Param('userId', ParseIntPipe) userId: number, @Req() req: AuthRequest) {
+    const connectedUserId = this.getAuthenticatedUserId(req);
+    if (connectedUserId !== userId) {
+      throw new ForbiddenException('You can only view your own CVs');
+    }
+    return this.cvService.findByUser(userId);
+  }
+
+  @Get('skill/:skillId')
+  async findBySkill(@Param('skillId', ParseIntPipe) skillId: number, @Req() req: AuthRequest) {
+    const connectedUserId = this.getAuthenticatedUserId(req);
+    const cvs = await this.cvService.findBySkill(skillId);
+    return cvs.filter((cv) => cv.user?.id === connectedUserId);
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.cvService.findOne(id);
+  async findOne(@Param('id', ParseIntPipe) id: number, @Req() req: AuthRequest) {
+    const connectedUserId = this.getAuthenticatedUserId(req);
+    const cv = await this.cvService.findOne(id);
+
+    if (cv.user?.id !== connectedUserId) {
+      throw new ForbiddenException('You can only view your own CVs');
+    }
+
+    return cv;
   }
 
   @Patch(':id')
   async update(
-    @Param('id', ParseIntPipe) id: number, 
+    @Param('id', ParseIntPipe) id: number,
     @Body() updateCvDto: UpdateCvDto,
-    @Req() req: authMiddleware.AuthRequest
+    @Req() req: AuthRequest,
   ) {
-    // Check if the authenticated user is the owner of the CV
+    const connectedUserId = this.getAuthenticatedUserId(req);
     const cv = await this.cvService.findOne(id);
-    
-    if (cv.user?.id !== req.userId) {
+
+    if (cv.user?.id !== connectedUserId) {
       throw new ForbiddenException('You can only update your own CVs');
     }
+
+    // Prevent ownership transfer through update payload.
+    delete updateCvDto.userId;
 
     return this.cvService.update(id, updateCvDto);
   }
 
   @Delete(':id')
-  async remove(@Param('id', ParseIntPipe) id: number, @Req() req: authMiddleware.AuthRequest) {
-    // Check if the authenticated user is the owner of the CV
+  async remove(@Param('id', ParseIntPipe) id: number, @Req() req: AuthRequest) {
+    const connectedUserId = this.getAuthenticatedUserId(req);
     const cv = await this.cvService.findOne(id);
-    
-    if (cv.user?.id !== req.userId) {
+
+    if (cv.user?.id !== connectedUserId) {
       throw new ForbiddenException('You can only delete your own CVs');
     }
 
     return this.cvService.remove(id);
   }
 
-  // Additional routes for CV management
-  @Get('user/:userId')
-  findByUser(@Param('userId', ParseIntPipe) userId: number) {
-    return this.cvService.findByUser(userId);
-  }
-
-  @Get('skill/:skillId')
-  findBySkill(@Param('skillId', ParseIntPipe) skillId: number) {
-    return this.cvService.findBySkill(skillId);
-  }
-
   @Post(':id/skills/:skillId')
-  addSkillToCv(
-    @Param('id', ParseIntPipe) cvId: number, 
-    @Param('skillId', ParseIntPipe) skillId: number
+  async addSkillToCv(
+    @Param('id', ParseIntPipe) cvId: number,
+    @Param('skillId', ParseIntPipe) skillId: number,
+    @Req() req: AuthRequest,
   ) {
+    const connectedUserId = this.getAuthenticatedUserId(req);
+    const cv = await this.cvService.findOne(cvId);
+
+    if (cv.user?.id !== connectedUserId) {
+      throw new ForbiddenException('You can only update your own CVs');
+    }
+
     return this.cvService.addSkillToCv(cvId, skillId);
   }
 
   @Delete(':id/skills/:skillId')
-  removeSkillFromCv(
-    @Param('id', ParseIntPipe) cvId: number, 
-    @Param('skillId', ParseIntPipe) skillId: number
+  async removeSkillFromCv(
+    @Param('id', ParseIntPipe) cvId: number,
+    @Param('skillId', ParseIntPipe) skillId: number,
+    @Req() req: AuthRequest,
   ) {
+    const connectedUserId = this.getAuthenticatedUserId(req);
+    const cv = await this.cvService.findOne(cvId);
+
+    if (cv.user?.id !== connectedUserId) {
+      throw new ForbiddenException('You can only update your own CVs');
+    }
+
     return this.cvService.removeSkillFromCv(cvId, skillId);
   }
 }

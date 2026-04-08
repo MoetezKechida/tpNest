@@ -1,35 +1,85 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from '../app.module';
-import { UserService } from '../user/user.service';
-import { SkillService } from '../skill/skill.service';
-import { CvService } from '../cv/cv.service';
+import { getRepositoryToken } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { User } from '../user/entities/user.entity';
+import { Skill } from '../skill/entities/skill.entity';
+import { Cv } from '../cv/entities/cv.entity';
+import {
+  randEmail,
+  randUserName,
+  randPassword,
+  randFirstName,
+  randLastName,
+  randNumber,
+  randJobTitle,
+  randFilePath,
+} from '@ngneat/falso';
 
 async function bootstrap() {
-  // Create NestJS Standalone application
   const app = await NestFactory.createApplicationContext(AppModule);
-  
+
   try {
-    console.log('NestJS application context created');
     console.log('Starting data seeding...');
 
-    // Get services from NestJS container
-    const userService = app.get(UserService);
-    const skillService = app.get(SkillService);
-    const cvService = app.get(CvService);
+    const userRepo = app.get<Repository<User>>(getRepositoryToken(User));
+    const skillRepo = app.get<Repository<Skill>>(getRepositoryToken(Skill));
+    const cvRepo = app.get<Repository<Cv>>(getRepositoryToken(Cv));
 
-    // Create new data in correct order (Skills and Users first, then CVs)
-    const skills = await skillService.seedSkills();
-    const users = await userService.seedUsers();
-    const cvs = await cvService.seedCvs();
+    await cvRepo.createQueryBuilder().delete().execute();
+    await skillRepo.createQueryBuilder().delete().execute();
+    await userRepo.createQueryBuilder().delete().execute();
 
-    console.log('Seeding completed successfully!');
-    console.log(`Summary: ${users.length} users, ${skills.length} skills, ${cvs.length} CVs`);
+    const skillsData = [
+      'JavaScript', 'TypeScript', 'Python', 'Java', 'C#', 'PHP',
+      'React', 'Angular', 'Vue.js', 'NestJS', 'Express.js', 'Spring Boot',
+      'MySQL', 'PostgreSQL', 'MongoDB', 'Redis',
+      'Docker', 'Git', 'AWS', 'Kubernetes',
+      'Team Leadership', 'Project Management', 'Communication', 'Problem Solving',
+    ].map((designation) => ({ designation }));
+
+    const savedSkills = await skillRepo.save(skillsData);
+    console.log("Created  skills");
+
+    const usersData: Partial<User>[] = Array.from({ length: 10 }, () => ({
+      username: randUserName(),
+      email: randEmail(),
+      password: randPassword(),
+    }));
+    const savedUsers = await userRepo.save(usersData);
+    console.log("Created  users");
+
+    const cvsData: Partial<Cv>[] = [];
+    for (const user of savedUsers) {
+      const count = randNumber({ min: 1, max: 3 });
+      for (let i = 0; i < count; i++) {
+        cvsData.push({
+          name: randLastName(),
+          firstname: randFirstName(),
+          age: randNumber({ min: 18, max: 65 }),
+          cin: randNumber({ min: 10000000, max: 99999999 }).toString(),
+          job: randJobTitle(),
+          path: randFilePath(),
+          user,
+        });
+      }
+    }
+    const savedCvs = await cvRepo.save(cvsData);
+
+    for (const cv of savedCvs) {
+      const count = randNumber({ min: 2, max: 6 });
+      cv.skills = [...savedSkills].sort(() => 0.5 - Math.random()).slice(0, count);
+      await cvRepo.save(cv);
+    }
+
+
+    console.log("Summary: users, skills, CVs");
+    console.log('Seeding completed successfully');
 
   } catch (error) {
     console.error('Error during seeding:', error);
   } finally {
     await app.close();
-    console.log('Application context closed');
   }
 }
 
