@@ -6,10 +6,11 @@ import { User } from '../user/entities/user.entity';
 import { Skill } from '../skill/entities/skill.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthMiddleware } from '../middlewares/auth.middleware';
+import { RolesGuard } from '../auth/guards/roles.guard';
 
 @Module({
   controllers: [CvController],
-  providers: [CvService],
+  providers: [CvService, RolesGuard],
   imports: [TypeOrmModule.forFeature([Cv, User, Skill])],
   exports: [CvService] 
 })
@@ -18,9 +19,13 @@ export class CvModule implements NestModule {
     consumer
       .apply(AuthMiddleware)
       .forRoutes(
-        { path: 'cv', method: RequestMethod.POST },      
-        { path: 'cv/:id', method: RequestMethod.PATCH }, 
-        { path: 'cv/:id', method: RequestMethod.DELETE } 
+        { path: 'cv', method: RequestMethod.POST },
+        { path: 'cv', method: RequestMethod.GET },
+        { path: 'cv/user/:userId', method: RequestMethod.GET },
+        { path: 'cv/skill/:skillId', method: RequestMethod.GET },
+        { path: 'cv/:id', method: RequestMethod.GET },
+        { path: 'cv/:id', method: RequestMethod.PATCH },
+        { path: 'cv/:id', method: RequestMethod.DELETE }
       );
   }
 }
