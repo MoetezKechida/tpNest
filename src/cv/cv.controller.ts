@@ -1,16 +1,30 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe, Req, ForbiddenException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  ParseIntPipe,
+  Req,
+  ForbiddenException,
+  UseGuards,
+} from '@nestjs/common';
 import { CvService } from './cv.service';
 import { CreateCvDto } from './dto/create-cv.dto';
 import { UpdateCvDto } from './dto/update-cv.dto';
-import { Request } from 'express';
-
-export interface AuthRequest extends Request {
-  userId?: number;
-}
+import { Roles } from '../auth/decorators/roles.decorator';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import type { AuthRequest } from '../middlewares/auth.middleware';
 
 @Controller('cv')
 export class CvController {
   constructor(private readonly cvService: CvService) {}
+
+  private isAdmin(req: AuthRequest): boolean {
+    return req.userRole?.trim().toLowerCase() === 'admin';
+  }
 
   @Post()
   create(@Body() createCvDto: CreateCvDto, @Req() req: AuthRequest) {
@@ -19,23 +33,41 @@ export class CvController {
   }
 
   @Get()
-  findAll() {
+  findAll(@Req() req: AuthRequest) {
+    if (!req.userId) {
+      throw new ForbiddenException('Authenticated user required');
+    }
+
+    if (!this.isAdmin(req)) {
+      return this.cvService.findByUser(req.userId);
+    }
+
     return this.cvService.findAll();
   }
 
   @Get('user/:userId')
+  @Roles('admin')
+  @UseGuards(RolesGuard)
   findByUser(@Param('userId', ParseIntPipe) userId: number) {
     return this.cvService.findByUser(userId);
   }
 
   @Get('skill/:skillId')
+  @Roles('admin')
+  @UseGuards(RolesGuard)
   findBySkill(@Param('skillId', ParseIntPipe) skillId: number) {
     return this.cvService.findBySkill(skillId);
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.cvService.findOne(id);
+  async findOne(@Param('id', ParseIntPipe) id: number, @Req() req: AuthRequest) {
+    const cv = await this.cvService.findOne(id);
+
+    if (this.isAdmin(req) || cv.user?.id === req.userId) {
+      return cv;
+    }
+
+    throw new ForbiddenException('You can only view your own CVs');
   }
 
   @Patch(':id')
