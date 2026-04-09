@@ -5,13 +5,14 @@ import { verify } from 'jsonwebtoken';
 export interface JwtPayload {
   userId: number;
   username: string;
-  role: string;
+  role?: string;
   iat?: number;
   exp?: number;
 }
 
 export interface AuthRequest extends Request {
   userId?: number;
+  userRole?: string;
 }
 
 @Injectable()
@@ -37,13 +38,14 @@ export class AuthMiddleware implements NestMiddleware {
       }
 
       req.userId = decoded.userId;
+      req.userRole = decoded.role;
       this.logger.debug(`User ${req.userId} authenticated successfully for ${req.method} ${req.url}`);
       next();
     } catch (error) {
       if (error instanceof UnauthorizedException) {
         throw error;
       }
-      if (error.name === 'TokenExpiredError') {
+      if (error instanceof Error && error.name === 'TokenExpiredError') {
         this.logger.warn(`Expired token used on ${req.method} ${req.url}`);
         throw new UnauthorizedException('Token expired');
       }

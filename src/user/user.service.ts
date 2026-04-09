@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -36,6 +36,21 @@ export class UserService {
     await this.findOne(id);
     await this.userRepository.update(id, updateUserDto);
     return this.findOne(id);
+  }
+
+  async updateRole(id: number, role: string): Promise<Partial<User>> {
+    const normalizedRole = role?.trim().toLowerCase();
+
+    if (!normalizedRole) {
+      throw new BadRequestException('Role is required');
+    }
+
+    const user = await this.findOne(id);
+    user.role = normalizedRole;
+
+    const savedUser = await this.userRepository.save(user);
+    const { password, ...safeUser } = savedUser;
+    return safeUser;
   }
 
   async remove(id: number): Promise<void> {
