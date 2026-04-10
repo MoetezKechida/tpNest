@@ -1,6 +1,7 @@
 import { DataSource } from 'typeorm';
 import { User } from '../user/entities/user.entity';
 import { randEmail, randUserName, randPassword } from '@ngneat/falso';
+import * as bcrypt from 'bcrypt';
 
 export async function seedUsers(dataSource: DataSource): Promise<User[]> {
   const userRepository = dataSource.getRepository(User);
@@ -15,7 +16,8 @@ export async function seedUsers(dataSource: DataSource): Promise<User[]> {
     users.push({
       username: randUserName(),
       email: randEmail(),
-      password: randPassword(), // In real app, should be hashed
+      password: await bcrypt.hash(randPassword(), 10),
+      role: 'user',
     });
   }
 

@@ -6,6 +6,7 @@ import {
   Patch,
   Param,
   Delete,
+  ParseIntPipe,
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
@@ -33,21 +34,24 @@ export class SkillController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.skillService.findOne(+id);
+  findOne(@Param('id', ParseIntPipe) id: number) {
+    return this.skillService.findOne(id);
   }
 
   @Patch(':id')
   @Roles('admin')
   @UseGuards(RolesGuard)
-  update(@Param('id') id: string, @Body() updateSkillDto: UpdateSkillDto) {
-    return this.skillService.update(+id, updateSkillDto);
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateSkillDto: UpdateSkillDto,
+  ) {
+    return this.skillService.update(id, updateSkillDto);
   }
 
   @Delete(':id')
   @Roles('admin')
   @UseGuards(RolesGuard)
-  remove(@Param('id') id: string) {
-    return this.skillService.remove(+id);
+  remove(@Param('id', ParseIntPipe) id: number) {
+    return this.skillService.remove(id);
   }
 }
