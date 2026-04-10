@@ -1,6 +1,13 @@
-import { Column, Entity, JoinTable, ManyToMany, ManyToOne,PrimaryGeneratedColumn } from "typeorm";
-import { User } from "../../user/entities/user.entity";
-import { Skill } from "../../skill/entities/skill.entity";
+import {
+  Column,
+  Entity,
+  JoinTable,
+  ManyToMany,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
+import { User } from '../../user/entities/user.entity';
+import { Skill } from '../../skill/entities/skill.entity';
 
 @Entity('cv')
 export class Cv {
@@ -17,22 +24,17 @@ export class Cv {
   @ManyToOne(() => User, (user) => user.cvs)
   user: User;
 
-  @ManyToMany(
-    () => Skill,
-    (skill) => skill.cvs,
-    { eager: true }
-  )
+  @ManyToMany(() => Skill, (skill) => skill.cvs, { eager: true })
   @JoinTable({
     name: 'cv_skills',
     joinColumn: {
-        name: 'cv',
-        referencedColumnName: 'id'
+      name: 'cv',
+      referencedColumnName: 'id',
     },
     inverseJoinColumn: {
-        name: 'skill',
-        referencedColumnName: 'id'
-    }
+      name: 'skill',
+      referencedColumnName: 'id',
+    },
   })
   skills: Skill[];
-    
 }

@@ -5,6 +5,6 @@ export class CreateCvDto {
   cin: string;
   job: string;
   path: string;
-  userId?: number; 
-  skillIds?: number[]; 
+  userId?: number;
+  skillIds?: number[];
 }

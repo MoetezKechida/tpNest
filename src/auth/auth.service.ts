@@ -1,4 +1,9 @@
-import { Injectable, ConflictException, UnauthorizedException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  ConflictException,
+  UnauthorizedException,
+  Logger,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../user/entities/user.entity';
@@ -17,17 +22,23 @@ export class AuthService {
     private readonly jwtService: JwtService,
   ) {}
 
-  async register(registerDto: RegisterDto): Promise<{ message: string; user: Partial<User> }> {
+  async register(
+    registerDto: RegisterDto,
+  ): Promise<{ message: string; user: Partial<User> }> {
     const existingUser = await this.userRepository.findOne({
       where: [{ username: registerDto.username }, { email: registerDto.email }],
     });
 
     if (existingUser) {
       if (existingUser.username === registerDto.username) {
-        this.logger.warn(`Failed registration: Username ${registerDto.username} already exists`);
+        this.logger.warn(
+          `Failed registration: Username ${registerDto.username} already exists`,
+        );
         throw new ConflictException('Username already exists');
       }
-      this.logger.warn(`Failed registration: Email ${registerDto.email} already exists`);
+      this.logger.warn(
+        `Failed registration: Email ${registerDto.email} already exists`,
+      );
       throw new ConflictException('Email already exists');
     }
 
@@ -43,31 +54,48 @@ export class AuthService {
     const savedUser = await this.userRepository.save(user);
     const { password, ...result } = savedUser;
 
-    this.logger.log(`User registered successfully: ${result.username} (ID: ${result.id})`);
+    this.logger.log(
+      `User registered successfully: ${result.username} (ID: ${result.id})`,
+    );
     return { message: 'User registered successfully', user: result };
   }
 
-  async login(loginDto: LoginDto): Promise<{ token: string; user: Partial<User> }> {
+  async login(
+    loginDto: LoginDto,
+  ): Promise<{ token: string; user: Partial<User> }> {
     const user = await this.userRepository.findOne({
       where: { username: loginDto.username },
     });
 
     if (!user) {
-      this.logger.warn(`Login failed: Invalid username attempted (${loginDto.username})`);
+      this.logger.warn(
+        `Login failed: Invalid username attempted (${loginDto.username})`,
+      );
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const isPasswordValid = await bcrypt.compare(loginDto.password, user.password);
+    const isPasswordValid = await bcrypt.compare(
+      loginDto.password,
+      user.password,
+    );
     if (!isPasswordValid) {
-      this.logger.warn(`Login failed: Invalid password for user ${user.username}`);
+      this.logger.warn(
+        `Login failed: Invalid password for user ${user.username}`,
+      );
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const payload = { userId: user.id, username: user.username, role: user.role };
+    const payload = {
+      userId: user.id,
+      username: user.username,
+      role: user.role,
+    };
     const token = this.jwtService.sign(payload);
 
     const { password, ...result } = user;
-    this.logger.log(`User logged in successfully: ${user.username} (ID: ${user.id})`);
+    this.logger.log(
+      `User logged in successfully: ${user.username} (ID: ${user.id})`,
+    );
     return { token, user: result };
   }
 }

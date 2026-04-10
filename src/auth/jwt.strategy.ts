@@ -30,14 +30,16 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   // This method is called automatically if the token is valid
   async validate(payload: JwtPayload) {
     // Optional: We can check if the user actually still exists in the database
-    const user = await this.userRepository.findOne({ where: { id: payload.userId } });
-    
+    const user = await this.userRepository.findOne({
+      where: { id: payload.userId },
+    });
+
     if (!user) {
       throw new UnauthorizedException('User no longer exists');
     }
 
     // Whatever we return here gets attached to req.user
     // So in our controllers, we can just use req.user.id or req.user.role
-    return user; 
+    return user;
   }
 }

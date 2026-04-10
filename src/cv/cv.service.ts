@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { CreateCvDto } from './dto/create-cv.dto';
@@ -33,7 +37,9 @@ export class CvService {
         where: { id: createCvDto.userId },
       });
       if (!user) {
-        throw new NotFoundException(`User with ID ${createCvDto.userId} not found`);
+        throw new NotFoundException(
+          `User with ID ${createCvDto.userId} not found`,
+        );
       }
       cv.user = user;
     }
@@ -91,7 +97,9 @@ export class CvService {
           where: { id: updateCvDto.userId },
         });
         if (!user) {
-          throw new NotFoundException(`User with ID ${updateCvDto.userId} not found`);
+          throw new NotFoundException(
+            `User with ID ${updateCvDto.userId} not found`,
+          );
         }
         cv.user = user;
       }
@@ -133,7 +141,9 @@ export class CvService {
   }
 
   async findBySkill(skillId: number): Promise<Cv[]> {
-    const skill = await this.skillRepository.findOne({ where: { id: skillId } });
+    const skill = await this.skillRepository.findOne({
+      where: { id: skillId },
+    });
     if (!skill) {
       throw new NotFoundException(`Skill with ID ${skillId} not found`);
     }
@@ -146,7 +156,9 @@ export class CvService {
 
   async addSkillToCv(cvId: number, skillId: number): Promise<Cv> {
     const cv = await this.findOne(cvId);
-    const skill = await this.skillRepository.findOne({ where: { id: skillId } });
+    const skill = await this.skillRepository.findOne({
+      where: { id: skillId },
+    });
 
     if (!skill) {
       throw new NotFoundException(`Skill with ID ${skillId} not found`);

@@ -31,15 +31,34 @@ async function bootstrap() {
     await userRepo.createQueryBuilder().delete().execute();
 
     const skillsData = [
-      'JavaScript', 'TypeScript', 'Python', 'Java', 'C#', 'PHP',
-      'React', 'Angular', 'Vue.js', 'NestJS', 'Express.js', 'Spring Boot',
-      'MySQL', 'PostgreSQL', 'MongoDB', 'Redis',
-      'Docker', 'Git', 'AWS', 'Kubernetes',
-      'Team Leadership', 'Project Management', 'Communication', 'Problem Solving',
+      'JavaScript',
+      'TypeScript',
+      'Python',
+      'Java',
+      'C#',
+      'PHP',
+      'React',
+      'Angular',
+      'Vue.js',
+      'NestJS',
+      'Express.js',
+      'Spring Boot',
+      'MySQL',
+      'PostgreSQL',
+      'MongoDB',
+      'Redis',
+      'Docker',
+      'Git',
+      'AWS',
+      'Kubernetes',
+      'Team Leadership',
+      'Project Management',
+      'Communication',
+      'Problem Solving',
     ].map((designation) => ({ designation }));
 
     const savedSkills = await skillRepo.save(skillsData);
-    console.log("Created  skills");
+    console.log('Created  skills');
 
     const usersData: Partial<User>[] = Array.from({ length: 10 }, () => ({
       username: randUserName(),
@@ -47,7 +66,7 @@ async function bootstrap() {
       password: randPassword(),
     }));
     const savedUsers = await userRepo.save(usersData);
-    console.log("Created  users");
+    console.log('Created  users');
 
     const cvsData: Partial<Cv>[] = [];
     for (const user of savedUsers) {
@@ -68,14 +87,14 @@ async function bootstrap() {
 
     for (const cv of savedCvs) {
       const count = randNumber({ min: 2, max: 6 });
-      cv.skills = [...savedSkills].sort(() => 0.5 - Math.random()).slice(0, count);
+      cv.skills = [...savedSkills]
+        .sort(() => 0.5 - Math.random())
+        .slice(0, count);
       await cvRepo.save(cv);
     }
 
-
-    console.log("Summary: users, skills, CVs");
+    console.log('Summary: users, skills, CVs');
     console.log('Seeding completed successfully');
-
   } catch (error) {
     console.error('Error during seeding:', error);
   } finally {
