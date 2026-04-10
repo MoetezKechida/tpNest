@@ -10,7 +10,7 @@ export class SkillService {
   constructor(
     @InjectRepository(Skill)
     private readonly skillRepository: Repository<Skill>,
-  ) { }
+  ) {}
 
   async create(createSkillDto: CreateSkillDto): Promise<Skill> {
     const skill = this.skillRepository.create(createSkillDto);

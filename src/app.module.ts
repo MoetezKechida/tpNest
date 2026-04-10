@@ -16,17 +16,19 @@ import { AuthModule } from './auth/auth.module';
       inject: [ConfigService],
       useFactory: (config: ConfigService) => {
         const useDocker = config.get<string>('USE_DOCKER') === 'true';
+        const synchronize =
+          config.get<string>('DB_SYNCHRONIZE', 'true') === 'true';
 
         if (useDocker) {
           return {
             type: 'postgres',
             host: config.get<string>('DB_HOST', 'localhost'),
-            port: config.get<number>('DB_PORT', 5432),
+            port: config.get<number>('DB_PORT', 5433),
             username: config.get<string>('DB_USERNAME', 'postgres'),
             password: config.get<string>('DB_PASSWORD', 'postgres'),
             database: config.get<string>('DB_DATABASE', 'tpnest'),
             autoLoadEntities: true,
-            synchronize: true,
+            synchronize,
           };
         }
 
@@ -38,7 +40,7 @@ import { AuthModule } from './auth/auth.module';
           password: config.get<string>('DB_PASSWORD', ''),
           database: config.get<string>('DB_DATABASE', 'tpnest'),
           autoLoadEntities: true,
-          synchronize: true,
+          synchronize,
         };
       },
     }),

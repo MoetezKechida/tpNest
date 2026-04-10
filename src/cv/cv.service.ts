@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { CreateCvDto } from './dto/create-cv.dto';
@@ -19,37 +23,47 @@ export class CvService {
   ) {}
 
   async create(createCvDto: CreateCvDto): Promise<Cv> {
-    const cv = this.cvRepository.create({
-      name: createCvDto.name,
-      firstname: createCvDto.firstname,
-      age: createCvDto.age,
-      cin: createCvDto.cin,
-      job: createCvDto.job,
-      path: createCvDto.path,
-    });
+    const savedCv = await this.cvRepository.manager.transaction(
+      async (manager) => {
+        const cvRepo = manager.getRepository(Cv);
+        const userRepo = manager.getRepository(User);
+        const skillRepo = manager.getRepository(Skill);
 
-    if (createCvDto.userId) {
-      const user = await this.userRepository.findOne({
-        where: { id: createCvDto.userId },
-      });
-      if (!user) {
-        throw new NotFoundException(`User with ID ${createCvDto.userId} not found`);
-      }
-      cv.user = user;
-    }
+        const cv = cvRepo.create({
+          name: createCvDto.name,
+          firstname: createCvDto.firstname,
+          age: createCvDto.age,
+          cin: createCvDto.cin,
+          job: createCvDto.job,
+          path: createCvDto.path,
+        });
 
-    const savedCv = await this.cvRepository.save(cv);
+        if (createCvDto.userId) {
+          const user = await userRepo.findOne({
+            where: { id: createCvDto.userId },
+          });
+          if (!user) {
+            throw new NotFoundException(
+              `User with ID ${createCvDto.userId} not found`,
+            );
+          }
+          cv.user = user;
+        }
 
-    if (createCvDto.skillIds && createCvDto.skillIds.length > 0) {
-      const skills = await this.skillRepository.findBy({
-        id: In(createCvDto.skillIds),
-      });
-      if (skills.length !== createCvDto.skillIds.length) {
-        throw new NotFoundException('One or more skills not found');
-      }
-      savedCv.skills = skills;
-      await this.cvRepository.save(savedCv);
-    }
+        if (createCvDto.skillIds && createCvDto.skillIds.length > 0) {
+          const uniqueSkillIds = [...new Set(createCvDto.skillIds)];
+          const skills = await skillRepo.findBy({ id: In(uniqueSkillIds) });
+
+          if (skills.length !== uniqueSkillIds.length) {
+            throw new NotFoundException('One or more skills not found');
+          }
+
+          cv.skills = skills;
+        }
+
+        return cvRepo.save(cv);
+      },
+    );
 
     return this.findOne(savedCv.id);
   }
@@ -72,46 +86,59 @@ export class CvService {
   }
 
   async update(id: number, updateCvDto: UpdateCvDto): Promise<Cv> {
-    const cv = await this.findOne(id);
+    await this.cvRepository.manager.transaction(async (manager) => {
+      const cvRepo = manager.getRepository(Cv);
+      const userRepo = manager.getRepository(User);
+      const skillRepo = manager.getRepository(Skill);
 
-    await this.cvRepository.update(id, {
-      name: updateCvDto.name ?? cv.name,
-      firstname: updateCvDto.firstname ?? cv.firstname,
-      age: updateCvDto.age ?? cv.age,
-      cin: updateCvDto.cin ?? cv.cin,
-      job: updateCvDto.job ?? cv.job,
-      path: updateCvDto.path ?? cv.path,
+      const cv = await cvRepo.findOne({
+        where: { id },
+        relations: ['user', 'skills'],
+      });
+
+      if (!cv) {
+        throw new NotFoundException(`CV with ID ${id} not found`);
+      }
+
+      cv.name = updateCvDto.name ?? cv.name;
+      cv.firstname = updateCvDto.firstname ?? cv.firstname;
+      cv.age = updateCvDto.age ?? cv.age;
+      cv.cin = updateCvDto.cin ?? cv.cin;
+      cv.job = updateCvDto.job ?? cv.job;
+      cv.path = updateCvDto.path ?? cv.path;
+
+      if (updateCvDto.userId !== undefined) {
+        if (updateCvDto.userId === null) {
+          cv.user = null;
+        } else {
+          const user = await userRepo.findOne({
+            where: { id: updateCvDto.userId },
+          });
+          if (!user) {
+            throw new NotFoundException(
+              `User with ID ${updateCvDto.userId} not found`,
+            );
+          }
+          cv.user = user;
+        }
+      }
+
+      if (updateCvDto.skillIds !== undefined) {
+        if (updateCvDto.skillIds.length === 0) {
+          cv.skills = [];
+        } else {
+          const uniqueSkillIds = [...new Set(updateCvDto.skillIds)];
+          const skills = await skillRepo.findBy({ id: In(uniqueSkillIds) });
+          if (skills.length !== uniqueSkillIds.length) {
+            throw new NotFoundException('One or more skills not found');
+          }
+          cv.skills = skills;
+        }
+      }
+
+      await cvRepo.save(cv);
     });
 
-    if (updateCvDto.userId !== undefined) {
-      if (updateCvDto.userId === null) {
-        cv.user = null;
-      } else {
-        const user = await this.userRepository.findOne({
-          where: { id: updateCvDto.userId },
-        });
-        if (!user) {
-          throw new NotFoundException(`User with ID ${updateCvDto.userId} not found`);
-        }
-        cv.user = user;
-      }
-    }
-
-    if (updateCvDto.skillIds !== undefined) {
-      if (updateCvDto.skillIds.length === 0) {
-        cv.skills = [];
-      } else {
-        const skills = await this.skillRepository.findBy({
-          id: In(updateCvDto.skillIds),
-        });
-        if (skills.length !== updateCvDto.skillIds.length) {
-          throw new NotFoundException('One or more skills not found');
-        }
-        cv.skills = skills;
-      }
-    }
-
-    await this.cvRepository.save(cv);
     return this.findOne(id);
   }
 
@@ -133,7 +160,9 @@ export class CvService {
   }
 
   async findBySkill(skillId: number): Promise<Cv[]> {
-    const skill = await this.skillRepository.findOne({ where: { id: skillId } });
+    const skill = await this.skillRepository.findOne({
+      where: { id: skillId },
+    });
     if (!skill) {
       throw new NotFoundException(`Skill with ID ${skillId} not found`);
     }
@@ -146,7 +175,9 @@ export class CvService {
 
   async addSkillToCv(cvId: number, skillId: number): Promise<Cv> {
     const cv = await this.findOne(cvId);
-    const skill = await this.skillRepository.findOne({ where: { id: skillId } });
+    const skill = await this.skillRepository.findOne({
+      where: { id: skillId },
+    });
 
     if (!skill) {
       throw new NotFoundException(`Skill with ID ${skillId} not found`);
@@ -164,6 +195,12 @@ export class CvService {
 
   async removeSkillFromCv(cvId: number, skillId: number): Promise<Cv> {
     const cv = await this.findOne(cvId);
+
+    const exists = cv.skills.some((skill) => skill.id === skillId);
+    if (!exists) {
+      throw new NotFoundException('Skill is not associated with this CV');
+    }
+
     cv.skills = cv.skills.filter((s) => s.id !== skillId);
     await this.cvRepository.save(cv);
     return this.findOne(cvId);
