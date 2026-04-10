@@ -63,9 +63,11 @@ export class AuthService {
   async login(
     loginDto: LoginDto,
   ): Promise<{ token: string; user: Partial<User> }> {
-    const user = await this.userRepository.findOne({
-      where: { username: loginDto.username },
-    });
+    const user = await this.userRepository
+      .createQueryBuilder('user')
+      .addSelect('user.password')
+      .where('user.username = :username', { username: loginDto.username })
+      .getOne();
 
     if (!user) {
       this.logger.warn(

@@ -1,10 +1,10 @@
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { PassportStrategy } from '@nestjs/passport';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../user/entities/user.entity';
-import * as process from 'process';
 
 export interface JwtPayload {
   userId: number;
@@ -17,13 +17,20 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    configService: ConfigService,
   ) {
+    const secret = configService.get<string>('JWT_SECRET');
+
+    if (!secret) {
+      throw new Error('JWT_SECRET must be set in environment variables');
+    }
+
     super({
       // Extract the token from the Authorization header (Bearer prefix)
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
       // Use the same secret you use to sign the token
-      secretOrKey: process.env.JWT_SECRET || 'fallback_secret_key',
+      secretOrKey: secret,
     });
   }
 

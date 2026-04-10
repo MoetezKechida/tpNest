@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
@@ -9,11 +10,23 @@ import { JwtStrategy } from './jwt.strategy';
 
 @Module({
   imports: [
+    ConfigModule,
     TypeOrmModule.forFeature([User]),
     PassportModule.register({ defaultStrategy: 'jwt' }),
-    JwtModule.register({
-      secret: process.env.JWT_SECRET || 'fallback_secret_key',
-      signOptions: { expiresIn: '1h' }, // Token expires in 1 hour
+    JwtModule.registerAsync({
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => {
+        const secret = configService.get<string>('JWT_SECRET');
+
+        if (!secret) {
+          throw new Error('JWT_SECRET must be set in environment variables');
+        }
+
+        return {
+          secret,
+          signOptions: { expiresIn: '1h' },
+        };
+      },
     }),
   ],
   controllers: [AuthController],
